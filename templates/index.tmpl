@@ -2,32 +2,37 @@
 <!DOCTYPE HTML>
 <html>
 <head>
-
-    <script type="text/javascript">
-         function myWebsocketStart()
-         {
-             var ws = new WebSocket("ws://localhost:8080/ws/{{ .account_id }}");
-
-               ws.onmessage = function (evt)
-               {
-                  var myTextArea = document.getElementById("textarea1");
-                  myTextArea.value = myTextArea.value + "\n" + evt.data
-               };
-
-               ws.onclose = function()
-               {
-                  var myTextArea = document.getElementById("textarea1");
-                  myTextArea.value = myTextArea.value + "\n" + "Connection closed";
-               };
-
-         }
-
-    </script>
-
+  <style type="text/css">
+    textarea {
+     width: 1000px;
+     height: 600px;
+     background-color: gray;
+     font-size: 1em;
+     font-weight: bold;
+     font-family: Verdana, Arial, Helvetica, sans-serif;
+     border: 1px solid green;
+    }
+  </style>
+  <script type="text/javascript">
+       function myWebsocketStart()
+       {
+           var ws = new WebSocket("ws://localhost:8080/ws/{{ .account_id }}");
+             ws.onmessage = function (evt)
+             {
+                var myTextArea = document.getElementById("textarea1");
+                myTextArea.value = myTextArea.value + "\n" + evt.data
+             };
+             ws.onclose = function()
+             {
+                var myTextArea = document.getElementById("textarea1");
+                myTextArea.value = myTextArea.value + "\n" + "Connection closed";
+             };
+       }
+  </script>
 </head>
 <body>
 <button onclick="javascript:myWebsocketStart()">Subscribe</button>
-<textarea id="textarea1">MyTextArea</textarea>
+<textarea id="textarea1">#################################Log#################################</textarea>
 </body>
 </html>
 {{ end }}
