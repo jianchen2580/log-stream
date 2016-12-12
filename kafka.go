@@ -7,7 +7,10 @@ import (
 )
 
 type Message struct {
-	Message string `json:"message"`
+	Message  string `json:"message"`
+	Date     string `json:"date"`
+	Facility string `json:"facility"`
+	Severity string `json:"severity"`
 }
 
 type KafkaConsumer struct {

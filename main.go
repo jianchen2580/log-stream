@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/codegangsta/cli"
 	"github.com/gin-gonic/gin"
@@ -39,7 +40,7 @@ func wshandler(w http.ResponseWriter, r *http.Request, c *gin.Context) {
 	}
 	defer consumer.close()
 	// TODO: Offset start point
-	cp, err := consumer.consumer.ConsumePartition(consumer.topic, 0, sarama.OffsetOldest)
+	cp, err := consumer.consumer.ConsumePartition(consumer.topic, 0, sarama.OffsetNewest)
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
@@ -58,7 +59,8 @@ func wshandler(w http.ResponseWriter, r *http.Request, c *gin.Context) {
 			// TODO: debug print
 			a := re.FindStringSubmatch(string(message.Message))
 			if len(a) != 0 {
-				err = conn.WriteMessage(websocket.TextMessage, []byte(message.Message))
+				log := []string{message.Date, message.Severity, message.Facility, message.Message}
+				err = conn.WriteMessage(websocket.TextMessage, []byte(strings.Join(log, " ")))
 				if err != nil {
 					panic(err)
 				}
