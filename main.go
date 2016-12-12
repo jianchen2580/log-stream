@@ -4,32 +4,35 @@ import (
 	//"encoding/json"
 	"encoding/json"
 	"fmt"
+	"log"
+	"os"
+
 	"github.com/codegangsta/cli"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	"log"
-	"os"
 
 	"github.com/Shopify/sarama"
 	//"io/ioutil"
 	"net/http"
-)
-
-const (
-	prismPattern string = `(?P<%s>[0-9]+)/(?P<appId>[0-9]+)`
+	"regexp"
 )
 
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 }
+var (
+	broker string
+	topic  string
+)
 
 func wshandler(w http.ResponseWriter, r *http.Request, c *gin.Context) {
 	// TODO: read from paramter
-	fmt.Println(c.Param("accountID"))
-	fmt.Printf(prismPattern, c.Param("accountID"))
-	brokers := []string{"127.0.0.1:9092"}
-	topic := "test"
+	//	prismPattern string = `(?P<%s>[0-9]+)/(?P<appId>[0-9]+)`
+
+	s := fmt.Sprintf(`%s/(?P<appId>[0-9]+)`, c.Param("accountID"))
+	brokers := []string{broker}
+	topic := topic
 	consumer, err := NewKafkaConsumer(topic, brokers)
 	if err != nil {
 		panic(err)
@@ -39,9 +42,10 @@ func wshandler(w http.ResponseWriter, r *http.Request, c *gin.Context) {
 	cp, err := consumer.consumer.ConsumePartition(consumer.topic, 0, sarama.OffsetOldest)
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
+	re := regexp.MustCompile(s)
 	for {
 		select {
 		case msg := <-cp.Messages():
@@ -49,16 +53,16 @@ func wshandler(w http.ResponseWriter, r *http.Request, c *gin.Context) {
 			err := json.Unmarshal([]byte(msg.Value), &message)
 			if err != nil {
 				// TODO: handle unmarshal err here
-				fmt.Println("unmarshal failed")
+				log.Println("unmarshal failed")
 			}
 			// TODO: debug print
-			fmt.Println(message)
-
-			err = conn.WriteMessage(websocket.TextMessage, []byte(msg.Value))
-			if err != nil {
-				panic(err)
+			a := re.FindStringSubmatch(string(message.Message))
+			if len(a) != 0 {
+				err = conn.WriteMessage(websocket.TextMessage, []byte(message.Message))
+				if err != nil {
+					panic(err)
+				}
 			}
-
 		}
 	}
 }
@@ -82,13 +86,12 @@ func Run() error {
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "es-puller"
-	app.Usage = "work with `es-puller` microservice"
+	app.Name = "log-stream"
+	app.Usage = "work with `log-stream` service"
 	app.Version = "0.0.1"
-
 	app.Flags = []cli.Flag{
-		cli.StringFlag{Name: "broker, b", Value: "127.0.0.1:9092", Usage: "kafka broker", EnvVar: "KAFKA_BROKER"},
-		cli.StringFlag{Name: "topic, t", Value: "test", Usage: "kafka topic", EnvVar: "KAFKA_TOPIC"},
+		cli.StringFlag{Name: "broker, b", Value: "127.0.0.1:9092", Usage: "kafka broker", EnvVar: "KAFKA_BROKER", Destination: &broker},
+		cli.StringFlag{Name: "topic, t", Value: "test", Usage: "kafka topic", EnvVar: "KAFKA_TOPIC", Destination: &topic},
 	}
 
 	app.Commands = []cli.Command{
